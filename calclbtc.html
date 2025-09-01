@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kalkulator Kripto Real-Time</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f6;
+      color: #333;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .price {
+      font-size: 1.3em;
+      font-weight: bold;
+      margin: 8px 0;
+      color: #27ae60;
+    }
+    .loading {
+      color: #7f8c8d;
+      font-style: italic;
+    }
+    .error {
+      color: #e74c3c;
+    }
+    .calculator {
+      margin-top: 25px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      text-align: left;
+    }
+    .calculator label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+    .calculator input, .calculator select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #result {
+      margin-top: 15px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    footer {
+      margin-top: 30px;
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Harga Real-Time & Kalkulator Kripto</h1>
+
+    <p><strong>Bitcoin (BTC):</strong> <span id="btc" class="price loading">Memuat...</span></p>
+    <p><strong>Ethereum (ETH):</strong> <span id="eth" class="price loading">Memuat...</span></p>
+    <p><strong>Solana (SOL):</strong> <span id="sol" class="price loading">Memuat...</span></p>
+    <p><strong>Ripple (XRP):</strong> <span id="xrp" class="price loading">Memuat...</span></p>
+    <p><strong>USD/IDR:</strong> <span id="usd" class="price loading">Memuat...</span></p>
+
+    <!-- Kalkulator -->
+    <div class="calculator">
+      <h3>Kalkulator Pembelian Kripto</h3>
+      <label for="jumlah-idr">Jumlah Uang (IDR):</label>
+      <input type="number" id="jumlah-idr" placeholder="Contoh: 500000" min="1" />
+
+      <label for="aset">Pilih Aset:</label>
+      <select id="aset">
+        <option value="btc">Bitcoin (BTC)</option>
+        <option value="eth">Ethereum (ETH)</option>
+        <option value="sol">Solana (SOL)</option>
+        <option value="xrp">Ripple (XRP)</option>
+      </select>
+
+      <button onclick="hitungKripto()">Hitung</button>
+      <div id="result">Hasil akan muncul di sini.</div>
+    </div>
+
+    <footer>Update otomatis setiap 30 detik. Data dari CoinGecko & ExchangeRate-API.</footer>
+  </div>
+
+  <script>
+    let harga = {
+      btc: null,
+      eth: null,
+      sol: null,
+      xrp: null,
+      usdIdr: null
+    };
+
+    // Format angka: 1.000.000,00
+    function formatHarga(num) {
+      return new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6
+      }).format(num);
+    }
+
+    // Format angka kripto (presisi tinggi)
+    function formatKripto(num) {
+      return new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 6,
+        maximumFractionDigits: 8
+      }).format(num);
+    }
+
+    // Ambil harga kripto dari CoinGecko (dalam USD)
+    async function updateCryptoPrices() {
+      try {
+        const response = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple&vs_currencies=usd'
+        );
+        const data = await response.json();
+
+        harga.btc = data.bitcoin.usd;
+        harga.eth = data.ethereum.usd;
+        harga.sol = data.solana.usd;
+        harga.xrp = data.ripple.usd;
+
+        document.getElementById('btc').textContent = '$ ' + formatHarga(harga.btc);
+        document.getElementById('eth').textContent = '$ ' + formatHarga(harga.eth);
+        document.getElementById('sol').textContent = '$ ' + formatHarga(harga.sol);
+        document.getElementById('xrp').textContent = '$ ' + formatHarga(harga.xrp);
+
+        document.querySelectorAll('.price').forEach(el => {
+          if (el.classList.contains('loading')) el.classList.remove('loading');
+        });
+      } catch (error) {
+        console.error("Gagal ambil data kripto:", error);
+        document.getElementById('btc').textContent = 'Gagal';
+        document.getElementById('eth').textContent = 'Gagal';
+        document.getElementById('sol').textContent = 'Gagal';
+        document.getElementById('xrp').textContent = 'Gagal';
+      }
+    }
+
+    // Ambil nilai tukar USD ke IDR
+    async function updateUSDIDR() {
+      try {
+        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await response.json();
+        harga.usdIdr = data.rates.IDR;
+
+        document.getElementById('usd').textContent = 'Rp ' + formatHarga(harga.usdIdr);
+        if (document.getElementById('usd').classList.contains('loading')) {
+          document.getElementById('usd').classList.remove('loading');
+        }
+      } catch (error) {
+        console.error("Gagal ambil data USD/IDR:", error);
+        document.getElementById('usd').textContent = 'Gagal';
+      }
+    }
+
+    // Hitung berapa banyak kripto yang bisa dibeli
+    function hitungKripto() {
+      const jumlahIdr = parseFloat(document.getElementById('jumlah-idr').value);
+      const aset = document.getElementById('aset').value;
+
+      if (!jumlahIdr || jumlahIdr <= 0) {
+        document.getElementById('result').textContent = "Masukkan jumlah uang yang valid.";
+        return;
+      }
+
+      if (!harga.usdIdr || !harga[aset]) {
+        document.getElementById('result').textContent = "Data harga belum tersedia. Tunggu sebentar...";
+        return;
+      }
+
+      // Konversi IDR ke USD dulu
+      const jumlahUsd = jumlahIdr / harga.usdIdr;
+
+      // Hitung jumlah aset
+      const jumlahAset = jumlahUsd / harga[aset];
+
+      document.getElementById('result').innerHTML = `
+        <strong>Dengan Rp ${formatHarga(jumlahIdr)}, Anda bisa beli:</strong><br>
+        <span style="font-size:1.2em; color:#27ae60;">${formatKripto(jumlahAset)} ${aset.toUpperCase()}</span>
+      `;
+    }
+
+    // Update semua data
+    async function updateAll() {
+      await updateCryptoPrices();
+      await updateUSDIDR();
+    }
+
+    // Jalankan saat halaman dimuat
+    updateAll();
+
+    // Update setiap 30 detik
+    setInterval(updateAll, 30000);
+  </script>
+</body>
+</html>
