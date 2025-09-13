@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Struk Pembelian</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 15px;
+      background: #f5f5f5;
+    }
+    textarea, input, button {
+      width: 100%;
+      font-size: 16px;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    #struk-container {
+      background: white;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #struk {
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 16px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-group button {
+      flex: 1;
+    }
+    #struk .total {
+      color: red;
+      font-weight: bold;
+    }
+    #struk .bayar {
+      color: green;
+      font-weight: bold;
+    }
+    #struk .sisa {
+      color: blue;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Input Transaksi</h2>
+<textarea id="input" rows="4" placeholder="Contoh:
+Pulsa 10 2
+Data 50"></textarea>
+
+<input id="bayar" type="number" placeholder="Bayar (Contoh: 50 untuk 50k)">
+
+<div class="btn-group">
+  <button onclick="cetakStruk()">Cetak Struk</button>
+  <button onclick="saveAsImage()">Simpan Gambar</button>
+</div>
+
+<div id="struk-container">
+  <div id="struk"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+function getHariTanggal() {
+  const hariIndo = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const tgl = new Date();
+  const hari = hariIndo[tgl.getDay()];
+  const tanggal = tgl.toLocaleDateString('id-ID', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+  const waktu = tgl.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return `${hari}, ${tanggal} ${waktu}`;
+}
+
+function cetakStruk() {
+  const input = document.getElementById("input").value;
+  const bayarInput = parseInt(document.getElementById("bayar").value || "0");
+  const lines = input.split('\n');
+  let output = "====== STRUK ======\n";
+  output += getHariTanggal() + "\n";
+  output += "-------------------\n";
+  let total = 0;
+  let detail = "";
+
+  lines.forEach(line => {
+    const parts = line.trim().split(" ");
+    if (parts.length >= 2) {
+      const jenis = parts[0];
+      const nominal = parseInt(parts[1]);
+      const jumlah = parseInt(parts[2] || "1");
+      const subtotal = nominal * 1000 * jumlah;
+      total += subtotal;
+      detail += `${jenis} ${nominal}K x ${jumlah} = Rp${subtotal.toLocaleString()}\n`;
+    }
+  });
+
+  const bayar = bayarInput * 1000;
+  const sisa = bayar - total;
+
+  output += detail;
+  output += "-------------------\n";
+  output += `<span class="total">Total: Rp${total.toLocaleString()}</span>\n`;
+  output += `<span class="bayar">Bayar: Rp${bayar.toLocaleString()}</span>\n`;
+  output += `<span class="sisa">Sisa: Rp${sisa.toLocaleString()}</span>\n`;
+  output += "===================";
+
+  document.getElementById("struk").innerHTML = output;
+}
+
+function saveAsImage() {
+  const strukElement = document.getElementById("struk-container");
+  html2canvas(strukElement).then(canvas => {
+    const link = document.createElement("a");
+    link.download = "struk.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+}
+</script>
+
+</body>
+</html>
