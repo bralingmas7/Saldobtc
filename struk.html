@@ -26,9 +26,12 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     #struk {
-      white-space: pre-wrap;
-      font-family: monospace;
+      font-family: 'Courier New', monospace;
       font-size: 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      text-align: left;
     }
     .btn-group {
       display: flex;
@@ -36,18 +39,6 @@
     }
     .btn-group button {
       flex: 1;
-    }
-    #struk .total {
-      color: red;
-      font-weight: bold;
-    }
-    #struk .bayar {
-      color: green;
-      font-weight: bold;
-    }
-    #struk .sisa {
-      color: blue;
-      font-weight: bold;
     }
   </style>
 </head>
@@ -61,8 +52,8 @@ Data 50"></textarea>
 <input id="bayar" type="number" placeholder="Bayar (Contoh: 50 untuk 50k)">
 
 <div class="btn-group">
-  <button onclick="cetakStruk()">Cetak Struk</button>
-  <button onclick="saveAsImage()">Simpan Gambar</button>
+  <button onclick="saveAsImage()" style="background-color: #25D366; color: white; border: none;">Simpan Gambar</button>
+  <button onclick="shareToWhatsApp()" style="background-color: #25D366; color: white; border: none;">Kirim ke WhatsApp (Teks)</button>
 </div>
 
 <div id="struk-container">
@@ -83,7 +74,7 @@ function getHariTanggal() {
   return `${hari}, ${tanggal} ${waktu}`;
 }
 
-function cetakStruk() {
+function generateStruk() {
   const input = document.getElementById("input").value;
   const bayarInput = parseInt(document.getElementById("bayar").value || "0");
   const lines = input.split('\n');
@@ -93,6 +84,7 @@ function cetakStruk() {
   let total = 0;
   let detail = "";
 
+  // Proses item (hanya item belanja)
   lines.forEach(line => {
     const parts = line.trim().split(" ");
     if (parts.length >= 2) {
@@ -108,24 +100,63 @@ function cetakStruk() {
   const bayar = bayarInput * 1000;
   const sisa = bayar - total;
 
+  // Gabungkan semua bagian
   output += detail;
   output += "-------------------\n";
-  output += `<span class="total">Total: Rp${total.toLocaleString()}</span>\n`;
-  output += `<span class="bayar">Bayar: Rp${bayar.toLocaleString()}</span>\n`;
-  output += `<span class="sisa">Sisa: Rp${sisa.toLocaleString()}</span>\n`;
+  
+  // Tambahkan total, bayar, sisa dengan STYLE INLINE (untuk html2canvas)
+  output += `Total: Rp${total.toLocaleString()}\n`;
+  output += `Bayar: Rp${bayar.toLocaleString()}\n`;
+  output += `Sisa: Rp${sisa.toLocaleString()}\n`;
   output += "===================";
 
-  document.getElementById("struk").innerHTML = output;
+  // Tampilkan di layar dengan HTML, tapi gunakan PRE dan inline style
+  const htmlOutput = output.replace(/\n/g, '<br>')
+    .replace(/Total: /, '<span style="color: red; font-weight: bold;">Total: </span>')
+    .replace(/Bayar: /, '<span style="color: green; font-weight: bold;">Bayar: </span>')
+    .replace(/Sisa: /, '<span style="color: blue; font-weight: bold;">Sisa: </span>');
+
+  document.getElementById("struk").innerHTML = `<pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 16px; line-height: 1.5;">${htmlOutput}</pre>`;
+
+  // Simpan versi teks murni untuk WhatsApp
+  window.lastStrukText = output;
 }
+
+// Auto-generate saat input berubah
+document.getElementById("input").addEventListener("input", generateStruk);
+document.getElementById("bayar").addEventListener("input", generateStruk);
 
 function saveAsImage() {
   const strukElement = document.getElementById("struk-container");
-  html2canvas(strukElement).then(canvas => {
+  if (!strukElement.innerHTML.trim()) {
+    alert("Silakan isi data transaksi terlebih dahulu!");
+    return;
+  }
+
+  html2canvas(strukElement, {
+    backgroundColor: '#ffffff',
+    scale: 2, // Tingkatkan resolusi gambar
+    useCORS: true,
+    allowTaint: true
+  }).then(canvas => {
     const link = document.createElement("a");
     link.download = "struk.png";
     link.href = canvas.toDataURL("image/png");
     link.click();
   });
+}
+
+function shareToWhatsApp() {
+  const strukText = window.lastStrukText;
+  if (!strukText) {
+    alert("Silakan isi data transaksi terlebih dahulu!");
+    return;
+  }
+
+  const message = encodeURIComponent(strukText);
+  const whatsappUrl = `https://wa.me/?text=${message}`;
+
+  window.open(whatsappUrl, '_blank');
 }
 </script>
 
